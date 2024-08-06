@@ -11,6 +11,8 @@ services:
 
   frontend-test:
     build: .
+    environment:
+      - BACKEND_URL=http://backend-test:5000
     command: ["streamlit", "run", "front.py", "--server.port=80", "--server.address=0.0.0.0"]
     ports:
       - "8080:80"

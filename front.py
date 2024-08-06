@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 import requests
 
+
 def main():
     # page
     st.set_page_config(layout="centered", page_title="PDF Konwerter")
@@ -42,11 +43,13 @@ def submit_form():
         st.error('Nie wybrano pliku')
         return
 
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:5000')
+
     # Send the file to the backend
     with st.spinner('Przetwarzanie...'):
         file = st.session_state.k_uploader
         files = {'file': (file.name, file.getvalue(), file.type)}
-        response = requests.post('http://127.0.0.1:5000/v1/converttocsv', files=files)
+        response = requests.post(f'{backend_url}/latest/converttocsv', files=files)
 
         if response.status_code == 200:
             st.success('Plik został pomyślnie przekonwertowany')
