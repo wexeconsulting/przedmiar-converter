@@ -1,20 +1,10 @@
 version: '3.8'
 
 services:
-  backend-test:
+  app-test:
     build: .
-    command: ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
-    ports:
-      - "8900:5000"
-    volumes:
-      - .:/app
-
-  frontend-test:
-    build: .
-    environment:
-      - BACKEND_URL=http://backend-test:5000
-    command: ["streamlit", "run", "front.py", "--server.port=80", "--server.address=0.0.0.0"]
     ports:
       - "8080:80"
+      - "8900:5000"
     volumes:
       - .:/app

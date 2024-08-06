@@ -10,11 +10,12 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
     zlib1g-dev \
     openjdk-17-jdk \
+    supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
-RUN echo "setuptools<72" > /app/constraints.txt
 ENV PIP_CONSTRAINT=/app/constraints.txt
 RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000 80
+CMD ["supervisord", "-c", "/app/supervisord.conf"]

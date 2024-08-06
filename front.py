@@ -43,7 +43,7 @@ def submit_form():
         st.error('Nie wybrano pliku')
         return
 
-    backend_url = os.getenv('BACKEND_URL', 'http://localhost:5000')
+    backend_url = 'http://localhost:5000'
 
     # Send the file to the backend
     with st.spinner('Przetwarzanie...'):
