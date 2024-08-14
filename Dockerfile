@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . .
 ENV PIP_CONSTRAINT=/app/constraints.txt
+ENV TOKEN=$(echo token.txt)
 RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000 80
 CMD ["supervisord", "-c", "/app/supervisord.conf"]
