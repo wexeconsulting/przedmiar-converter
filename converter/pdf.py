@@ -7,6 +7,8 @@ import pandas as pd
 import io
 import csv
 
+debug = False
+
 TEMPLATES = {
     "PRO1": {
         "area": [70.284, 71.697, 785.1, 558.11],
@@ -25,9 +27,7 @@ class SectionTracker:
         self.next_possible_section_id = None
         self.next_possible_lp = None
         self.last_section = "first"
-
-    def get_possible_transitions(self):
-        return self.possible_transitions[self.last_section]
+        self.worktime_calc = False
 
     def update_current_section_id(self, section_id: str):
         self.current_section_id = section_id
@@ -87,6 +87,7 @@ def extract_dict_from_pdf(template, pdf_path):
         row_type = evaluate_row(row, section_tracker)
 
         if row_type == 'section_title' and current_section_id != row['lp']:
+            section_tracker.worktime_calc = False
             current_section_id = row['lp']
             current_section_desc = row['opis'] + row['jm'] + row['poszcz'] + row['razem']
 
@@ -98,8 +99,12 @@ def extract_dict_from_pdf(template, pdf_path):
             }
 
         if row_type == 'lp' and current_lp != row['lp']:
+            section_tracker.worktime_calc = False
             current_lp = row['lp']
             section_tracker.update_current_lp(current_lp)
+
+            if 'czas pracy' in row['opis'].lower():
+                section_tracker.worktime_calc = True
 
             main_dict[current_section_id]['lp'][current_lp] = {
                 'podstawa': row['podstawa'],
@@ -111,7 +116,6 @@ def extract_dict_from_pdf(template, pdf_path):
 
         if row_type == 'd' and section_tracker.last_section == 'lp':
             main_dict[current_section_id]['code'] = row['lp']
-            current_section_code = row['lp']
             main_dict[current_section_id]['lp'][current_lp]['podstawa'] += row['podstawa']
             main_dict[current_section_id]['lp'][current_lp]['opis'] += row['opis']
         
@@ -142,6 +146,14 @@ def extract_dict_from_pdf(template, pdf_path):
         
         if row_type == 'total':
             main_dict[current_section_id]['lp'][current_lp]['razem'] = row['razem']
+
+        if index < 10 and debug:
+            print('-----------------')
+            print(f'Row type: {row_type}')
+            print(row)
+            print('---')
+            print(json.dumps(main_dict, indent=4))
+
 
     return main_dict
 
@@ -179,9 +191,7 @@ def evaluate_row(row, section_tracker):
             return None
     
     if section_tracker.last_section == 'section_title':
-        if podstawa != '':
-            return 'lp'
-        elif is_lp_match(lp):
+        if is_lp_match(lp):
             return 'lp'
         elif is_section_title_match(lp):
             return 'section_title'
@@ -191,6 +201,8 @@ def evaluate_row(row, section_tracker):
             return 'd'
 
     if section_tracker.last_section == 'd':
+        if lp != '' and section_tracker.worktime_calc:
+            pass
         if jm == '':
             return 'd'
         else:
@@ -202,7 +214,7 @@ def evaluate_row(row, section_tracker):
         else:
             return 'calculations'
 
-    if section_tracker.last_section == 'total':
+    if section_tracker.last_section == 'total' and section_tracker.worktime_calc:
         if is_lp_match(lp):
             return 'lp'
         elif is_section_title_match(lp):
@@ -228,8 +240,8 @@ def convert_dict_to_csv(dict_data):
                     if 'details' in lp_data:
                         for detail_id, detail_data in lp_data['details'].items():
                             writer.writerow(['', '', '', '', detail_data['opis'], detail_data['jm'], detail_data['poszcz'], ''])
-                    
-                    writer.writerow(['', '', '', '', '', '', 'TOTAL', lp_data['razem']])
+                    if 'razem' in lp_data:
+                        writer.writerow(['', '', '', '', '', '', 'TOTAL', lp_data['razem']])
     except Exception as e:
         raise e
     
@@ -282,13 +294,14 @@ def main(pdf_path):
     with open(f'{pdf_name}_output_final.json', 'w', encoding='utf-8') as json_file:
         json.dump(dict_final, json_file, ensure_ascii=False, indent=4)
 
-    csv_list = convert_dict_to_csv(dict_content)
-    with open(f'{pdf_name}_file.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        for row in csv_list:
-            writer.writerow(row)
+    csv_data = convert_dict_to_csv(dict_content)
+    print(type(csv_data))
+    with open(f'{pdf_name}_file.csv', 'w', newline='', encoding='utf-8') as file:
+        file.write(csv_data.getvalue)
 
 if __name__ == "__main__":
-    main('example1.pdf')
-    main('example2.pdf')
-    main('example4.pdf')
+    main('blad1.pdf')
+    main('blad2.pdf')
+    main('blad3.pdf')
+    main('blad4.pdf')
+    main('blad6.pdf')
