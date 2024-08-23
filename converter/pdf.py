@@ -7,7 +7,7 @@ import pandas as pd
 import io
 import csv
 
-debug = False
+debug = True
 
 TEMPLATES = {
     "PRO1": {
@@ -87,6 +87,7 @@ def extract_dict_from_pdf(template, pdf_path):
         row_type = evaluate_row(row, section_tracker)
 
         if row_type == 'section_title' and current_section_id != row['lp']:
+            print('New section: ', row['lp'])
             section_tracker.worktime_calc = False
             current_section_id = row['lp']
             current_section_desc = row['opis'] + row['jm'] + row['poszcz'] + row['razem']
@@ -147,22 +148,23 @@ def extract_dict_from_pdf(template, pdf_path):
         if row_type == 'total':
             main_dict[current_section_id]['lp'][current_lp]['razem'] = row['razem']
 
-        if index < 10 and debug:
+        if index < 50 and debug:
             print('-----------------')
+            print(f'Index: {index}')
+            print(f'Current section: {current_section_id}')
+            print(f'Current lp: {current_lp}')
             print(f'Row type: {row_type}')
             print(row)
             print('---')
-            print(json.dumps(main_dict, indent=4))
+            #print(json.dumps(main_dict, indent=4))
 
 
     return main_dict
 
 def evaluate_row(row, section_tracker):
     lp = row['lp']
-    podstawa = row['podstawa']
     jm = row['jm']
     poszcz = row['poszcz']
-    opis = row['opis']
 
     sec_title = re.compile(r'^\d+(\.\d+)*$')
     lp_pattern = re.compile(r'^\d+$')
@@ -214,7 +216,7 @@ def evaluate_row(row, section_tracker):
         else:
             return 'calculations'
 
-    if section_tracker.last_section == 'total' and section_tracker.worktime_calc:
+    if section_tracker.last_section == 'total' or section_tracker.worktime_calc:
         if is_lp_match(lp):
             return 'lp'
         elif is_section_title_match(lp):
