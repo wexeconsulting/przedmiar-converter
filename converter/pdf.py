@@ -7,7 +7,7 @@ import pandas as pd
 import io
 import csv
 
-debug = True
+debug = False
 
 TEMPLATES = {
     "PRO1": {
@@ -87,7 +87,6 @@ def extract_dict_from_pdf(template, pdf_path):
         row_type = evaluate_row(row, section_tracker)
 
         if row_type == 'section_title' and current_section_id != row['lp']:
-            print('New section: ', row['lp'])
             section_tracker.worktime_calc = False
             current_section_id = row['lp']
             current_section_desc = row['opis'] + row['jm'] + row['poszcz'] + row['razem']
@@ -120,8 +119,8 @@ def extract_dict_from_pdf(template, pdf_path):
             main_dict[current_section_id]['lp'][current_lp]['podstawa'] += row['podstawa']
             main_dict[current_section_id]['lp'][current_lp]['opis'] += row['opis']
         
-        if row_type is None and section_tracker.last_section == 'd':
-            current_section_code += row['lp']
+        if row_type == 'd' and section_tracker.last_section == 'd':
+            main_dict[current_section_id]['code'] += row['lp']
             main_dict[current_section_id]['lp'][current_lp]['podstawa'] += row['podstawa']
             main_dict[current_section_id]['lp'][current_lp]['opis'] += row['opis']
         
@@ -297,7 +296,6 @@ def main(pdf_path):
         json.dump(dict_final, json_file, ensure_ascii=False, indent=4)
 
     csv_data = convert_dict_to_csv(dict_content)
-    print(type(csv_data))
     with open(f'{pdf_name}_file.csv', 'w', newline='', encoding='utf-8') as file:
         file.write(csv_data.getvalue)
 
