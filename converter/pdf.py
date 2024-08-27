@@ -226,23 +226,25 @@ def evaluate_row(row, section_tracker):
 def convert_dict_to_csv(dict_data):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Lp.', 'Section', 'Podstawa', 'Name', 'Description and calculations', 'j.m.', 'Poszcz', 'Total'])
+    writer.writerow(['Lp.', '', 'Opis', '', 'Nazwa', '', '', '', '', 'Obmiar', 'JM'])
     
     try:
         for section_id, section_data in dict_data.items():
             if 'code' not in section_data:
                 section_data['code'] = f'd.{section_id}'
-            writer.writerow(['', section_data['code'], '', section_data['desc'], '', '', '', ''])
+            writer.writerow([section_data['code'], section_data['desc'], '', '', '', '', '', '', '', '', ''])
             
             if 'lp' in section_data:
                 for lp_id, lp_data in section_data['lp'].items():
-                    writer.writerow([lp_id, section_data['code'], lp_data['podstawa'], lp_data['opis'], '', lp_data['jm'], '', ''])
+                    if 'razem' in lp_data:
+                        razem = lp_data['razem']
+                    else:
+                        razem = 0
+                    writer.writerow(['', lp_id, lp_data['podstawa'], '', lp_data['opis'], '', '', '', '', razem, lp_data['jm']])
                     
                     if 'details' in lp_data:
                         for detail_id, detail_data in lp_data['details'].items():
-                            writer.writerow(['', '', '', '', detail_data['opis'], detail_data['jm'], detail_data['poszcz'], ''])
-                    if 'razem' in lp_data:
-                        writer.writerow(['', '', '', '', '', '', 'TOTAL', lp_data['razem']])
+                            writer.writerow(['', '', '', detail_data['opis'], '', '', '', detail_data['poszcz'], '', detail_data['jm']])
     except Exception as e:
         raise e
     
