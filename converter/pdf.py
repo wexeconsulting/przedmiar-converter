@@ -116,7 +116,7 @@ def extract_dict_from_pdf(template, pdf_path):
 
         if row_type == 'd' and section_tracker.last_section == 'lp':
             main_dict[current_section_id]['code'] = row['lp']
-            main_dict[current_section_id]['lp'][current_lp]['podstawa'] += row['podstawa']
+            main_dict[current_section_id]['lp'][current_lp]['podstawa'] += " "+row['podstawa']
             main_dict[current_section_id]['lp'][current_lp]['opis'] += row['opis']
         
         if row_type == 'd' and section_tracker.last_section == 'd':
@@ -244,7 +244,7 @@ def convert_dict_to_csv(dict_data):
                     
                     if 'details' in lp_data:
                         for detail_id, detail_data in lp_data['details'].items():
-                            writer.writerow(['', '', '', detail_data['opis'], '', '', '', detail_data['poszcz'], '', detail_data['jm']])
+                            writer.writerow(['', '', '', detail_data['opis'], '', '', '', detail_data['poszcz'], '', '', detail_data['jm']])
     except Exception as e:
         raise e
     
