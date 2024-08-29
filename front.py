@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 import requests
 import os
+import base64
 
 token = f"Bearer {os.getenv('TOKEN')}"
 
@@ -9,6 +10,7 @@ token = f"Bearer {os.getenv('TOKEN')}"
 def main():
     # page
     st.set_page_config(layout="centered", page_title="PDF Konwerter")
+    st.image('przedmiar_logo.png', width=300)
     st.title('PDF Konwerter')
 
     # upload widget

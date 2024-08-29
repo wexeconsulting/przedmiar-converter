@@ -7,7 +7,7 @@ import pandas as pd
 import io
 import csv
 
-debug = False
+debug = True
 
 TEMPLATES = {
     "PRO1": {
@@ -121,7 +121,7 @@ def extract_dict_from_pdf(template, pdf_path):
         
         if row_type == 'd' and section_tracker.last_section == 'd':
             main_dict[current_section_id]['code'] += row['lp']
-            main_dict[current_section_id]['lp'][current_lp]['podstawa'] += row['podstawa']
+            main_dict[current_section_id]['lp'][current_lp]['podstawa'] += " "+row['podstawa']
             main_dict[current_section_id]['lp'][current_lp]['opis'] += row['opis']
         
         if row_type == 'calculations':
@@ -147,7 +147,7 @@ def extract_dict_from_pdf(template, pdf_path):
         if row_type == 'total':
             main_dict[current_section_id]['lp'][current_lp]['razem'] = row['razem']
 
-        if index < 50 and debug:
+        if index < 10 and debug:
             print('-----------------')
             print(f'Index: {index}')
             print(f'Current section: {current_section_id}')
@@ -155,7 +155,7 @@ def extract_dict_from_pdf(template, pdf_path):
             print(f'Row type: {row_type}')
             print(row)
             print('---')
-            #print(json.dumps(main_dict, indent=4))
+            print(json.dumps(main_dict, indent=4))
 
 
     return main_dict
