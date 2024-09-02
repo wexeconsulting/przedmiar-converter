@@ -259,7 +259,7 @@ def convert_dict_to_json(raw_dict):
         section_dict = {
             "id": section_id,
             "opis": section_data["desc"],
-            "lp": []
+            "pozycje": []
         }
 
         for lp_id, lp_data in section_data["lp"].items():
@@ -279,7 +279,7 @@ def convert_dict_to_json(raw_dict):
                 }
                 lp_dict["wyliczenia"].append(detail_dict)
             
-            section_dict["lp"].append(lp_dict)
+            section_dict["pozycje"].append(lp_dict)
         
         result.append(section_dict)
     
