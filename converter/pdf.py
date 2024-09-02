@@ -257,7 +257,7 @@ def convert_dict_to_json(raw_dict):
     result = []
     for section_id, section_data in raw_dict.items():
         section_dict = {
-            "id": section_id,
+            "lp": section_id,
             "opis": section_data["desc"],
             "pozycje": []
         }
