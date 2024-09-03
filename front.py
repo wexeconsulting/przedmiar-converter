@@ -55,7 +55,7 @@ def submit_form():
         file = st.session_state.k_uploader
         files = {'file': (file.name, file.getvalue(), file.type)}
         headers = {'Authorization': token}
-        response = requests.post(f'{backend_url}/latest/converttocsv', files=files, headers=headers)
+        response = requests.post(f'{backend_url}/latest/converttocsv', files=files, headers=headers, verify=False)
 
         if response.status_code == 200:
             st.success('Plik został pomyślnie przekonwertowany')
