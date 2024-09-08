@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 import requests
 import os
+import base64
 
 token = f"Bearer {os.getenv('TOKEN')}"
 
@@ -9,6 +10,7 @@ token = f"Bearer {os.getenv('TOKEN')}"
 def main():
     # page
     st.set_page_config(layout="centered", page_title="PDF Konwerter")
+    st.image('przedmiar_logo.png', width=300)
     st.title('PDF Konwerter')
 
     # upload widget
@@ -46,14 +48,14 @@ def submit_form():
         st.error('Nie wybrano pliku')
         return
 
-    backend_url = 'http://127.0.0.1:5000'
+    backend_url = 'https://127.0.0.1:5000'
 
     # Send the file to the backend
     with st.spinner('Przetwarzanie...'):
         file = st.session_state.k_uploader
         files = {'file': (file.name, file.getvalue(), file.type)}
         headers = {'Authorization': token}
-        response = requests.post(f'{backend_url}/latest/converttocsv', files=files, headers=headers)
+        response = requests.post(f'{backend_url}/latest/converttocsv', files=files, headers=headers, verify=False)
 
         if response.status_code == 200:
             st.success('Plik został pomyślnie przekonwertowany')

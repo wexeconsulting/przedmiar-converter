@@ -1,7 +1,10 @@
 from flask import Flask
+from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__)
+
+    CORS(app, origins=["https://app.przedmiar.pl", "https://app-stage.przedmiar.pl"])
 
     from .v1 import v1_blueprint
     app.register_blueprint(v1_blueprint, url_prefix='/v1')
