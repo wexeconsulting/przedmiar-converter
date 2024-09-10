@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, jsonify, request, send_file
 #from converter.conv import convert_pdf_wrapper
 
-from converter.pdf import extract_dict_from_pdf, convert_dict_to_csv, convert_dict_to_json
+from converter.pdf import check_format_and_extract_dict, convert_dict_to_csv, convert_dict_to_json
 
 v1_blueprint = Blueprint('v1', __name__)
 
@@ -28,7 +28,7 @@ def convert_to_json():
         return jsonify({'error': 'No selected file'}), 400
 
     try:
-        dict_raw = extract_dict_from_pdf('PRO1',pdf_file)
+        dict_raw = check_format_and_extract_dict(pdf_file)
         json_content = convert_dict_to_json(dict_raw)
         return jsonify(json_content)
     except Exception as e:
@@ -48,7 +48,7 @@ def convert_to_csv():
         return jsonify({'error': 'No selected file'}), 400
 
     try:
-        dict_raw = extract_dict_from_pdf('PRO1',pdf_file)
+        dict_raw = check_format_and_extract_dict(pdf_file)
         csv_content = convert_dict_to_csv(dict_raw)
         
         csv_file = io.BytesIO(csv_content)
