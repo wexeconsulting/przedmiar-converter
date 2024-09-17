@@ -1,4 +1,5 @@
 from converter.pdf_evaluator import find_template
+import pdfplumber
 import json
 import csv
 import re
@@ -7,41 +8,36 @@ import pandas as pd
 import io
 import csv
 
+from logger_cfg import setup_logger
 
+log = setup_logger(__name__)
 
 debug = True
 
-TEMPLATES = {
-    "PRO6": {
-        "area": [70.284, 71.697, 785.1, 558.11],
-        "columns": [92.8, 144.6, 428.3, 457.2, 507.8],
-        "remap_cols": ["lp", "podstawa", "opis", "jm", "poszcz", "razem"],
-        "first_col": "Lp.",
-        "second_col": "Podstawa",
-        "forth_col": "j.m."
-    },
+FORMATS = {
     "PRO7": {
-        "area": [70.284, 71.697, 785.1, 558.11],
-        "columns": [105.9, 151.61, 198.49, 424.85, 458.18, 515.7],
+        "columns": 7,
         "remap_cols": ["lp", "nr_spec", "podstawa", "opis", "jm", "poszcz", "razem"],
         "first_col": "Lp.",
-        "second_col": "Nr spec.",
-        "forth_col": "Opis i wyliczenia"
+        "seventh_col": "Razem"
+    },
+    "PRO6": {
+        "columns": 6,
+        "remap_cols": ["lp", "podstawa", "opis", "jm", "poszcz", "razem"],
+        "first_col": "Lp.",
+        "sixth_col": "Razem"
     },
     "EXPERT6": {
-        "area": [43.7, 72.000, 785.1, 558.11],
-        "columns": [99.9, 157, 400, 423, 491.16],
+        "columns": 6,
         "remap_cols": ["lp", "podstawa", "opis", "jm", "poszcz", "razem"],
         "first_col": "Lp.",
-        "second_col": "Podstawa",
-        "forth_col": "j.m."
-
+        "sixth_col": "Razem"
     },
     "EXPERT7": {
-        "area": [54.8, 72.480, 785.1, 558.11],
-        "columns": [99.62, 156.32, 187.64, 411.33, 433.86, 496.48],
-        "remap_cols": ["lp", "nr_spec", "podstawa", "opis", "jm", "poszcz", "razem"],
-
+        "columns": 7,
+        "remap_cols": ["lp", "podstawa", "nr_spec", "opis", "jm", "poszcz", "razem"],
+        "first_col": "Lp.",
+        "seventh_col": "Razem"
     }
 }
 
@@ -93,41 +89,92 @@ class SectionTracker:
 
 
 def check_format_and_extract_dict(pdf_path):
-    print("Here")
+    log.debug("Begin: check_format_and_extract_dict")
     format = find_template(pdf_path)
-    print(f"Found template: {format}")
+    log.debug(f"Found template: {format}")
     return extract_dict_from_pdf(format, pdf_path)
 
-def extract_dict_from_pdf(template, pdf_path):
-    section_tracker = SectionTracker()
-    area = TEMPLATES[template]["area"]
-    columns = TEMPLATES[template]["columns"]
-    remap_cols = TEMPLATES[template]["remap_cols"]
+def get_df_from_pdf(pdf_path, template):
+    log.debug("Begin: get_df_from_pdf")
+    tpl_params = FORMATS[template]
+    print(tpl_params)
+    list_of_dfs = []
+
+    #extract dataframes from file - page by page, table by table as separate dataframe
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            if page is None:
+                continue
+            tables = page.extract_tables()
+            for tab in tables:
+                first_row = [element.replace('\n', ' ') if element else element for element in tab[0]]
+                df = pd.DataFrame(tab[1:], columns=first_row).fillna("")
+                list_of_dfs.append(df)
+    log.debug(f"Found total dataframes: {len(list_of_dfs)}")
+
+    #for x in list_of_dfs:
+        #print(x.columns)
+        #print(x.head(5))
+
+
+    # todo temporary solution
+    filtered_dfs = [df for df in list_of_dfs if df.columns[0] == tpl_params["first_col"]]
+    log.debug(f"After filtering: {len(list_of_dfs)}")
+    for i in filtered_dfs:
+        log.debug(len(i.columns))
+
+    #process the tables - merge columns if necessary
+    for i, df in enumerate(filtered_dfs):
+        columns = df.columns.tolist()
+        j = 0
+        while j < len(columns) - 1:
+            if columns[j + 1] is None:
+                df[columns[j]] = df[columns[j]].astype(str) + df.iloc[:, j + 1].astype(str)
+                df.drop(columns=[columns[j + 1]], inplace=True)
+                columns = df.columns.tolist()  # Update columns list after dropping
+            else:
+                j += 1
+        filtered_dfs[i] = df
     
-    df_list = tabula.read_pdf(pdf_path, area=area, columns=columns, pages='all')
+    log.debug(f"After merging columns: {len(filtered_dfs)}")
+    #for df in filtered_dfs:
+    #    print(df.columns)
 
-    if template in ("PRO6", "EXPERT6"):
-        filtered_dfs = [df for df in df_list if df.columns[0] == TEMPLATES[template]["first_col"] and df.columns[1] == TEMPLATES[template]["second_col"] and df.columns[3] == TEMPLATES[template]["forth_col"]]
-    elif template == "PRO7":
-        filtered_dfs = [df for df in df_list if df.columns[1] == "techn." and df.columns[2] == "cji"]
-    elif template == "EXPERT7":
-        filtered_dfs = [df for df in df_list if df.columns[2] == "Nr"]
-    df_main = pd.concat(filtered_dfs, ignore_index=True).fillna("")
-    df_main = df_main.rename(columns=dict(zip(df_main.columns, remap_cols)))
+    for df in filtered_dfs:
+        print(df.head(10))
 
-    print(df_main.head(30))
+    if 'sixth_col' in tpl_params:
+        filtered_dfs = [df for df in filtered_dfs if len(df.columns) >= tpl_params["columns"] and tpl_params["sixth_col"] in df.columns[5]]
+    elif 'seventh_col' in tpl_params:
+        filtered_dfs = [df for df in filtered_dfs if len(df.columns) >= tpl_params["columns"] and tpl_params["seventh_col"] in df.columns[6]]
+        
+    else:
+        filtered_dfs = [df for df in filtered_dfs if len(df.columns) >= tpl_params["columns"]]
+    
+    
+
+    df_main = pd.concat(filtered_dfs, ignore_index=True)
+    df_main = df_main.rename(columns=dict(zip(df_main.columns, tpl_params["remap_cols"])))
+    #print(df_main.head(10))
+    return split_rows(df_main)
+
+def extract_dict_from_pdf(template, pdf_path):
+    log.debug("Begin: extract_dict_from_pdf")
+    section_tracker = SectionTracker()
+    
+    df_main = get_df_from_pdf(pdf_path, template)
 
     current_section_id = "0"
     current_lp = "0"
     row_type = 'first'
     main_dict = {}
 
-    if template in ("EXPERT6", "PRO6", "EXPERT7"):
-        evaluate_function = evaluate_row_pro6
-    elif template == "PRO7":
-        evaluate_function = evaluate_row_pro7
-    else:
-        evaluate_function = evaluate_row_pro6
+    #if template in ("EXPERT6", "PRO6", "EXPERT7"):
+    evaluate_function = evaluate_row_pro6
+    #elif template == "PRO7":
+    #    evaluate_function = evaluate_row_pro7
+    #else:
+    #    evaluate_function = evaluate_row_pro6
 
     for index, row in df_main.iterrows():
         section_tracker.set_last_section(row_type)
@@ -194,7 +241,7 @@ def extract_dict_from_pdf(template, pdf_path):
         if row_type == 'total':
             main_dict[current_section_id]['lp'][current_lp]['razem'] = row['razem']
 
-        if index < 10 and debug:
+        if index > 550 and debug:
             print('-----------------')
             print(f'Index: {index}')
             print(f'Current section: {current_section_id}')
@@ -202,8 +249,8 @@ def extract_dict_from_pdf(template, pdf_path):
             print(f'Row type: {row_type}')
             print(row)
             print('---')
-            if index == 9:
-                print(json.dumps(main_dict, indent=4))
+            #if index == 9:
+            #    print(json.dumps(main_dict, indent=4))
 
 
     return main_dict
@@ -250,6 +297,7 @@ def evaluate_row_pro6(row, section_tracker):
             return 'd'
 
     if section_tracker.last_section == 'd':
+
         if lp != '' and section_tracker.worktime_calc:
             pass
         if jm == '':
@@ -271,10 +319,11 @@ def evaluate_row_pro6(row, section_tracker):
 
     return None
 
-def evaluate_row_pro7(row, section_tracker):
+def evaluate_row_pro6(row, section_tracker):
     lp = row['lp']
     jm = row['jm']
     poszcz = row['poszcz']
+    podstawa = row['podstawa']
 
     sec_title = re.compile(r'^\d+(\.\d+)*$')
     lp_pattern = re.compile(r'^\d+$')
@@ -313,8 +362,12 @@ def evaluate_row_pro7(row, section_tracker):
             return 'd'
 
     if section_tracker.last_section == 'd':
+
         if lp != '' and section_tracker.worktime_calc:
             pass
+        if section_tracker.worktime_calc and jm == '' and podstawa == '':
+            if is_section_title_match(lp):
+                return 'section_title'
         if jm == '':
             return 'd'
         else:
@@ -331,8 +384,8 @@ def evaluate_row_pro7(row, section_tracker):
             return 'lp'
         elif is_section_title_match(lp):
             return 'section_title'
-
     return None
+
 
 def convert_dict_to_csv(dict_data):
     output = io.StringIO()
@@ -395,6 +448,31 @@ def convert_dict_to_json(raw_dict):
         result.append(section_dict)
     
     return result
+
+def split_rows(df):
+    new_rows = []
+    for index, row in df.iterrows():
+        split_needed = False
+        new_row_data = {col: [] for col in df.columns}
+        
+        for col in df.columns:
+            if '\n' in str(row[col]):
+                split_needed = True
+                split_values = str(row[col]).split('\n')
+                new_row_data[col] = split_values
+            else:
+                new_row_data[col] = [row[col]]
+        
+        if split_needed:
+            max_splits = max(len(values) for values in new_row_data.values())
+            for i in range(max_splits):
+                new_row = {col: (new_row_data[col][i] if i < len(new_row_data[col]) else '') for col in df.columns}
+                new_rows.append(new_row)
+        else:
+            new_rows.append(row.to_dict())
+    
+    new_df = pd.DataFrame(new_rows)
+    return new_df.reset_index(drop=True)
 
 # Example usage
 def main(pdf_path):
