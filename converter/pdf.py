@@ -140,8 +140,8 @@ def get_df_from_pdf(pdf_path, template):
     #for df in filtered_dfs:
     #    print(df.columns)
 
-    for df in filtered_dfs:
-        print(df.head(10))
+    #for df in filtered_dfs:
+    #    print(df.head(10))
 
     if 'sixth_col' in tpl_params:
         filtered_dfs = [df for df in filtered_dfs if len(df.columns) >= tpl_params["columns"] and tpl_params["sixth_col"] in df.columns[5]]
@@ -241,13 +241,13 @@ def extract_dict_from_pdf(template, pdf_path):
         if row_type == 'total':
             main_dict[current_section_id]['lp'][current_lp]['razem'] = row['razem']
 
-        if index > 550 and debug:
+        if index < 10 and debug:
             print('-----------------')
             print(f'Index: {index}')
             print(f'Current section: {current_section_id}')
             print(f'Current lp: {current_lp}')
             print(f'Row type: {row_type}')
-            print(row)
+            print(row['opis'])
             print('---')
             #if index == 9:
             #    print(json.dumps(main_dict, indent=4))
@@ -473,6 +473,7 @@ def split_rows(df):
     
     new_df = pd.DataFrame(new_rows)
     return new_df.reset_index(drop=True)
+
 
 # Example usage
 def main(pdf_path):

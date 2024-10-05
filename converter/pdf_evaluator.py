@@ -50,7 +50,7 @@ def check_norma_pro_columns_template(reader):
     for page in reader.pages:
         text = page.extract_text()
         text_normalized = text.replace('\n', '')
-        print(text_normalized)
+        #print(text_normalized)
         if 'Lp. Podstawa Nr spec. techn. Opis i wyliczenia j.m. Poszcz. Razem' in text_normalized:
             return 'PRO7'
         if 'Lp. Nr spec.techn.Podstawa Opis i wyliczenia j.m. Poszcz. Razem' in text_normalized:
