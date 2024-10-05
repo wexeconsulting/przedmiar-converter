@@ -10,14 +10,26 @@ token = f"Bearer {os.getenv('TOKEN')}"
 def main():
     # page
     st.set_page_config(layout="centered", page_title="PDF Konwerter")
-    st.image('przedmiar_logo.png', width=300)
-    st.title('PDF Konwerter')
+    #st.image('przedmiar_logo.png', width=300)
+    gif_html = get_img_with_href('gfx/przedmiar_logo.png', 'https://przedmiar.pl')
+
+    st.markdown(gif_html, unsafe_allow_html=True)
+
+    st.title('Konwertuj przedmiar PDF do pliku CSV')
 
     # upload widget
     add_file_uploader()
 
     # create button
     add_button()
+
+    st.text("")
+    st.text("")
+    st.write("Dane z plików PDF oraz CSV możesz zaimportować bezpośrednio do programu kosztorysowego:")
+    st.write("01- Uruchom aplikację [przedmiar.pl](https://przedmiar.pl)")
+    st.write("02- Uruchom tabelę kosztorysową")
+    st.write("03- Kliknij „Więcej” a następnie „Import z CSV” lub „Import z PDF”")
+    
 
 def add_file_uploader():
     if 'uploader_key' not in st.session_state:
@@ -58,7 +70,7 @@ def submit_form():
         response = requests.post(f'{backend_url}/latest/converttocsv', files=files, headers=headers, verify=False)
 
         if response.status_code == 200:
-            st.success('Plik został pomyślnie przekonwertowany')
+            st.success('Plik został pomyślnie przekonwertowany.\nPrzy otwieraniu zastosuj zestaw znaków Unicode (UTF-8)')
             st.download_button(
                 label="Pobierz przekonwertowany plik",
                 data=response.content,
@@ -70,6 +82,23 @@ def submit_form():
             st.session_state.k_uploader = None
         else:
             st.error(f'System nie wspiera konwersji tego pliku')
+
+@st.cache(allow_output_mutation=True)
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+@st.cache(allow_output_mutation=True)
+def get_img_with_href(local_img_path, target_url):
+    img_format = os.path.splitext(local_img_path)[-1].replace('.', '')
+    bin_str = get_base64_of_bin_file(local_img_path)
+    html_code = f'''
+        <a href="{target_url}">
+            <img src="data:image/{img_format};base64,{bin_str}" style="width:200px; align: left;" />
+        </a>'''
+    return html_code
+
 
 if __name__ == '__main__':
     main()
